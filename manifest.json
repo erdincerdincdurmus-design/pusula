@@ -1,0 +1,18 @@
+
+{
+  "name": "Flash UI",
+  "short_name": "FlashUI",
+  "description": "Creative UI generation in a flash",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2584/2584687.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

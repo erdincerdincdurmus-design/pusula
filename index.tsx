@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -16,6 +17,7 @@ import { generateId } from './utils';
 import DottedGlowBackground from './components/DottedGlowBackground';
 import ArtifactCard from './components/ArtifactCard';
 import SideDrawer from './components/SideDrawer';
+import InstallDialog from './components/InstallDialog';
 import { 
     ThinkingIcon, 
     CodeIcon, 
@@ -25,6 +27,14 @@ import {
     ArrowUpIcon, 
     GridIcon 
 } from './components/Icons';
+
+// Simple Phone/Mobile Icon
+const PhoneIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+        <path d="M12 18h.01"/>
+    </svg>
+);
 
 function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -36,6 +46,7 @@ function App() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [placeholders, setPlaceholders] = useState<string[]>(INITIAL_PLACEHOLDERS);
   
+  const [isInstallOpen, setIsInstallOpen] = useState(false);
   const [drawerState, setDrawerState] = useState<{
       isOpen: boolean;
       mode: 'code' | 'variations' | null;
@@ -52,7 +63,6 @@ function App() {
       inputRef.current?.focus();
   }, []);
 
-  // Fix for mobile: reset scroll when focusing an item to prevent "overscroll" state
   useEffect(() => {
     if (focusedArtifactIndex !== null && window.innerWidth <= 1024) {
         if (gridScrollRef.current) {
@@ -62,7 +72,6 @@ function App() {
     }
   }, [focusedArtifactIndex]);
 
-  // Cycle placeholders
   useEffect(() => {
       const interval = setInterval(() => {
           setPlaceholderIndex(prev => (prev + 1) % placeholders.length);
@@ -70,7 +79,6 @@ function App() {
       return () => clearInterval(interval);
   }, [placeholders.length]);
 
-  // Dynamic placeholder generation on load
   useEffect(() => {
       const fetchDynamicPlaceholders = async () => {
           try {
@@ -162,19 +170,13 @@ You are a master UI/UX designer. Generate 3 RADICAL CONCEPTUAL VARIATIONS of: "$
 No names of artists. 
 Instead, describe the *Physicality* and *Material Logic* of the UI.
 
-**CREATIVE GUIDANCE (Use these as EXAMPLES of how to describe style, but INVENT YOUR OWN):**
-1. Example: "Asymmetrical Primary Grid" (Heavy black strokes, rectilinear structure, flat primary pigments, high-contrast white space).
-2. Example: "Suspended Kinetic Mobile" (Delicate wire-thin connections, floating organic primary shapes, slow-motion balance, white-void background).
-3. Example: "Grainy Risograph Press" (Overprinted translucent inks, dithered grain textures, monochromatic color depth, raw paper substrate).
-4. Example: "Volumetric Spectral Fluid" (Generative morphing gradients, soft-focus diffusion, bioluminescent light sources, spectral chromatic aberration).
-
 **YOUR TASK:**
 For EACH variation:
 - Invent a unique design persona name based on a NEW physical metaphor.
 - Rewrite the prompt to fully adopt that metaphor's visual language.
 - Generate high-fidelity HTML/CSS.
 
-Required JSON Output Format (stream ONE object per line):
+Required JSON Output Format:
 \`{ "name": "Persona Name", "html": "..." }\`
         `.trim();
 
@@ -253,18 +255,7 @@ Required JSON Output Format (stream ONE object per line):
 
         const stylePrompt = `
 Generate 3 distinct, highly evocative design directions for: "${trimmedInput}".
-
-**STRICT IP SAFEGUARD:**
-Never use artist or brand names. Use physical and material metaphors.
-
-**CREATIVE EXAMPLES (Do not simply copy these, use them as a guide for tone):**
-- Example A: "Asymmetrical Rectilinear Blockwork" (Grid-heavy, primary pigments, thick structural strokes, Bauhaus-functionalism vibe).
-- Example B: "Grainy Risograph Layering" (Tactile paper texture, overprinted translucent inks, dithered gradients).
-- Example C: "Kinetic Wireframe Suspension" (Floating silhouettes, thin balancing lines, organic primary shapes).
-- Example D: "Spectral Prismatic Diffusion" (Glassmorphism, caustic refraction, soft-focus morphing gradients).
-
-**GOAL:**
-Return ONLY a raw JSON array of 3 *NEW*, creative names for these directions (e.g. ["Tactile Risograph Press", "Kinetic Silhouette Balance", "Primary Pigment Gridwork"]).
+Return ONLY a raw JSON array of 3 *NEW*, creative names.
         `.trim();
 
         const styleResponse = await ai.models.generateContent({
@@ -280,16 +271,12 @@ Return ONLY a raw JSON array of 3 *NEW*, creative names for these directions (e.
             try {
                 generatedStyles = JSON.parse(jsonMatch[0]);
             } catch (e) {
-                console.warn("Failed to parse styles, using fallbacks");
+                console.warn("Failed to parse styles");
             }
         }
 
         if (!generatedStyles || generatedStyles.length < 3) {
-            generatedStyles = [
-                "Primary Pigment Gridwork",
-                "Tactile Risograph Layering",
-                "Kinetic Silhouette Balance"
-            ];
+            generatedStyles = ["Direction Alpha", "Direction Beta", "Direction Gamma"];
         }
         
         generatedStyles = generatedStyles.slice(0, 3);
@@ -308,17 +295,8 @@ Return ONLY a raw JSON array of 3 *NEW*, creative names for these directions (e.
         const generateArtifact = async (artifact: Artifact, styleInstruction: string) => {
             try {
                 const prompt = `
-You are Flash UI. Create a stunning, high-fidelity UI component for: "${trimmedInput}".
-
-**CONCEPTUAL DIRECTION: ${styleInstruction}**
-
-**VISUAL EXECUTION RULES:**
-1. **Materiality**: Use the specified metaphor to drive every CSS choice. (e.g. if Risograph, use \`feTurbulence\` for grain and \`mix-blend-mode: multiply\` for ink layering).
-2. **Typography**: Use high-quality web fonts. Pair a bold sans-serif with a refined monospace for data.
-3. **Motion**: Include subtle, high-performance CSS/JS animations (hover transitions, entry reveals).
-4. **IP SAFEGUARD**: No artist names or trademarks. 
-5. **Layout**: Be bold with negative space and hierarchy. Avoid generic cards.
-
+You are Flash UI. Create a stunning UI component for: "${trimmedInput}".
+DIRECTION: ${styleInstruction}
 Return ONLY RAW HTML. No markdown fences.
           `.trim();
           
@@ -363,7 +341,7 @@ Return ONLY RAW HTML. No markdown fences.
                     sess.id === sessionId ? {
                         ...sess,
                         artifacts: sess.artifacts.map(art => 
-                            art.id === artifact.id ? { ...art, html: `<div style="color: #ff6b6b; padding: 20px;">Error: ${e.message}</div>`, status: 'error' } : art
+                            art.id === artifact.id ? { ...art, html: `<div>Error</div>`, status: 'error' } : art
                         )
                     } : sess
                 ));
@@ -373,7 +351,7 @@ Return ONLY RAW HTML. No markdown fences.
         await Promise.all(placeholderArtifacts.map((art, i) => generateArtifact(art, generatedStyles[i])));
 
     } catch (e) {
-        console.error("Fatal error in generation process", e);
+        console.error("Fatal error", e);
     } finally {
         setIsLoading(false);
         setTimeout(() => inputRef.current?.focus(), 100);
@@ -412,8 +390,6 @@ Return ONLY RAW HTML. No markdown fences.
       }
   }, [currentSessionIndex, focusedArtifactIndex]);
 
-  const isLoadingDrawer = isLoading && drawerState.mode === 'variations' && componentVariations.length === 0;
-
   const hasStarted = sessions.length > 0 || isLoading;
   const currentSession = sessions[currentSessionIndex];
 
@@ -432,19 +408,25 @@ Return ONLY RAW HTML. No markdown fences.
 
   return (
     <>
-        <a href="https://x.com/ammaar" target="_blank" rel="noreferrer" className={`creator-credit ${hasStarted ? 'hide-on-mobile' : ''}`}>
-            created by @ammaar
-        </a>
+        <div className="top-nav-actions">
+            <button className="nav-action-btn" onClick={() => setIsInstallOpen(true)} title="Uygulamayı Yükle">
+                <PhoneIcon /> Yükle
+            </button>
+            <a href="https://x.com/ammaar" target="_blank" rel="noreferrer" className={`creator-credit ${hasStarted ? 'hide-on-mobile' : ''}`}>
+                @ammaar
+            </a>
+        </div>
+
+        <InstallDialog isOpen={isInstallOpen} onClose={() => setIsInstallOpen(false)} />
 
         <SideDrawer 
             isOpen={drawerState.isOpen} 
             onClose={() => setDrawerState(s => ({...s, isOpen: false}))} 
             title={drawerState.title}
         >
-            {isLoadingDrawer && (
+            {isLoading && drawerState.mode === 'variations' && componentVariations.length === 0 && (
                  <div className="loading-state">
-                     <ThinkingIcon /> 
-                     Designing variations...
+                     <ThinkingIcon /> Designing...
                  </div>
             )}
 
@@ -467,13 +449,7 @@ Return ONLY RAW HTML. No markdown fences.
         </SideDrawer>
 
         <div className="immersive-app">
-            <DottedGlowBackground 
-                gap={24} 
-                radius={1.5} 
-                color="rgba(255, 255, 255, 0.02)" 
-                glowColor="rgba(255, 255, 255, 0.15)" 
-                speedScale={0.5} 
-            />
+            <DottedGlowBackground gap={24} radius={1.5} />
 
             <div className={`stage-container ${focusedArtifactIndex !== null ? 'mode-focus' : 'mode-split'}`}>
                  <div className={`empty-state ${hasStarted ? 'fade-out' : ''}`}>
@@ -495,18 +471,14 @@ Return ONLY RAW HTML. No markdown fences.
                     return (
                         <div key={session.id} className={`session-group ${positionClass}`}>
                             <div className="artifact-grid" ref={sIndex === currentSessionIndex ? gridScrollRef : null}>
-                                {session.artifacts.map((artifact, aIndex) => {
-                                    const isFocused = focusedArtifactIndex === aIndex;
-                                    
-                                    return (
-                                        <ArtifactCard 
-                                            key={artifact.id}
-                                            artifact={artifact}
-                                            isFocused={isFocused}
-                                            onClick={() => setFocusedArtifactIndex(aIndex)}
-                                        />
-                                    );
-                                })}
+                                {session.artifacts.map((artifact, aIndex) => (
+                                    <ArtifactCard 
+                                        key={artifact.id}
+                                        artifact={artifact}
+                                        isFocused={focusedArtifactIndex === aIndex}
+                                        onClick={() => setFocusedArtifactIndex(aIndex)}
+                                    />
+                                ))}
                             </div>
                         </div>
                     );
@@ -514,30 +486,18 @@ Return ONLY RAW HTML. No markdown fences.
             </div>
 
              {canGoBack && (
-                <button className="nav-handle left" onClick={prevItem} aria-label="Previous">
-                    <ArrowLeftIcon />
-                </button>
+                <button className="nav-handle left" onClick={prevItem}><ArrowLeftIcon /></button>
              )}
              {canGoForward && (
-                <button className="nav-handle right" onClick={nextItem} aria-label="Next">
-                    <ArrowRightIcon />
-                </button>
+                <button className="nav-handle right" onClick={nextItem}><ArrowRightIcon /></button>
              )}
 
             <div className={`action-bar ${focusedArtifactIndex !== null ? 'visible' : ''}`}>
-                 <div className="active-prompt-label">
-                    {currentSession?.prompt}
-                 </div>
+                 <div className="active-prompt-label">{currentSession?.prompt}</div>
                  <div className="action-buttons">
-                    <button onClick={() => setFocusedArtifactIndex(null)}>
-                        <GridIcon /> Grid View
-                    </button>
-                    <button onClick={handleGenerateVariations} disabled={isLoading}>
-                        <SparklesIcon /> Variations
-                    </button>
-                    <button onClick={handleShowCode}>
-                        <CodeIcon /> Source
-                    </button>
+                    <button onClick={() => setFocusedArtifactIndex(null)}><GridIcon /> Grid View</button>
+                    <button onClick={handleGenerateVariations} disabled={isLoading}><SparklesIcon /> Variations</button>
+                    <button onClick={handleShowCode}><CodeIcon /> Source</button>
                  </div>
             </div>
 
@@ -556,7 +516,6 @@ Return ONLY RAW HTML. No markdown fences.
                             value={inputValue} 
                             onChange={handleInputChange} 
                             onKeyDown={handleKeyDown} 
-                            disabled={isLoading} 
                         />
                     ) : (
                         <div className="input-generating-label">
