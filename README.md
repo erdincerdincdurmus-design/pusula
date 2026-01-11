@@ -6,7 +6,7 @@
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: https://ai.studio/apps/bundled/flash_ui
+View your app in AI Studio: https://ai.studio/apps/drive/1eTa5KBRM32fP0MdzlZ6YiQlooMrisdXG
 
 ## Run Locally
 
